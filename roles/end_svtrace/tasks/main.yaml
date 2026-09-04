@@ -5,7 +5,7 @@
   command:
       killall --wait "svtrace.py" --signal SIGINT
 - name: Fetch svtrace result file
-  synchronize:
+  ansible.builtin.fetch:
     src: /tmp/results
-    dest: ../tests_results/latency/hyp_svtrace.record
-    mode: pull
+    dest: "{{ playbook_dir }}/../tests_results/latency/hyp_svtrace.record"
+    flat: true

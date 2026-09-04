@@ -12,25 +12,35 @@
 - name: Stop sv_timestamp_logger container
   become: true
   ansible.builtin.command:
-    cmd: docker rm --force sv_timestamp_logger_{{ target_architecture }}
+    cmd: docker stop --time 10 sv_timestamp_logger_{{ target_architecture }}
   register: stop_sv_timestamp_logger
   changed_when: stop_sv_timestamp_logger.rc == 0
   failed_when: >-
     stop_sv_timestamp_logger.rc != 0 and
     'No such container' not in
     (stop_sv_timestamp_logger.stdout ~ stop_sv_timestamp_logger.stderr)
+- name: Remove stopped sv_timestamp_logger container
+  become: true
+  ansible.builtin.command:
+    cmd: docker rm sv_timestamp_logger_{{ target_architecture }}
+  register: remove_sv_timestamp_logger
+  changed_when: remove_sv_timestamp_logger.rc == 0
+  failed_when: >-
+    remove_sv_timestamp_logger.rc != 0 and
+    'No such container' not in
+    (remove_sv_timestamp_logger.stdout ~ remove_sv_timestamp_logger.stderr)
 - name: Lower generated files permission
   become: true
   file:
     path: /tmp/sv_drops
     mode: '0644'
 - name: Fetch sv drop
-  synchronize:
+  ansible.builtin.fetch:
     src: /tmp/sv_drops
-    dest: ../tests_results/data/sv_drops_{{ inventory_hostname }}
-    mode: pull
+    dest: "{{ playbook_dir }}/../tests_results/data/sv_drops_{{ inventory_hostname }}"
+    flat: true
 - name: Fetch SV timestamps
-  synchronize:
+  ansible.builtin.fetch:
     src: "{{ ansible_user_dir }}/latency_tests/ts_{{ inventory_hostname }}.txt"
-    dest: ../tests_results/data/
-    mode: pull
+    dest: "{{ playbook_dir }}/../tests_results/data/ts_{{ inventory_hostname }}.txt"
+    flat: true

@@ -5,10 +5,9 @@
   set_fact:
     target_architecture: "{{ hostvars[inventory_hostname]['target_platform'] | default(target_platform) }}"
 - name: Transfer sv_timestamp_logger Docker archive from localhost to {{ inventory_hostname }}
-  synchronize:
+  ansible.builtin.copy:
     src: /tmp/sv_timestamp_logger_{{ target_architecture }}.tar
     dest: /tmp/sv_timestamp_logger_{{ target_architecture }}.tar
-  delegate_to: localhost
 - name: Load sv_timestamp_logger Docker archive
   become: true
   ansible.builtin.command:
