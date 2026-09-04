@@ -47,9 +47,6 @@
       -d {{ sv_interface }}
       -f /tmp/latency_tests/ts_{{ inventory_hostname }}.txt
       -s {{ stream_to_log }}
-      {% if 'publisher' in group_names %}
-      -t
-      {% endif %}
       {% if clock_device is defined and clock_device | length > 0 %}
       --clock_device {{ clock_device }}
       {% endif %}
