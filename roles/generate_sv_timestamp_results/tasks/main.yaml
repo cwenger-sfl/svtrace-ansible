@@ -11,6 +11,12 @@
     reference_logger_name: "{{ hostvars[groups['reference_logger'][0]].inventory_hostname }}"
   when: groups["reference_logger"] is defined and groups["reference_logger"] | length > 0
 
+- name: Remove previous SV result directory
+  ansible.builtin.file:
+    path: "../tests_results/data/ci_latency_tests_{{ hostvars[item].inventory_hostname }}"
+    state: absent
+  with_items: "{{ groups['subscriber'] }}"
+
 - name: Generate SV results with publisher as reference
   shell:
     cmd: >-

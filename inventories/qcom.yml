@@ -44,7 +44,7 @@ all:
               target_platform: arm64
 
               sv_interface: end0
-              enable_svtrace: true
+              enable_svtrace: false
               svtrace_core: 4
               enable_sv_ts: true
               sv_ts_core: 5
