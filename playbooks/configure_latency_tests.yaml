@@ -9,10 +9,10 @@
     - name: Build_sv_timestamp_analysis
       include_role:
         name: "build_sv_timestamp_analysis"
-    - name: Build sv_timestamp_logger for each subscriber
+    - name: Build sv_timestamp_logger for each target architecture
       include_role:
         name: "build_sv_timestamp_logger"
-      with_items: "{{ groups['subscriber'] }}"
+      with_items: "{{ (groups['publisher'] | default([])) + (groups['subscriber'] | default([])) }}"
       loop_control:
         loop_var: subscriber_name
 

@@ -11,9 +11,14 @@
       docker logs sv_timestamp_logger_{{ target_architecture }} > /tmp/sv_drops
 - name: Stop sv_timestamp_logger container
   become: true
-  docker_container:
-    name: sv_timestamp_logger_{{ target_architecture }}
-    state: absent
+  ansible.builtin.command:
+    cmd: docker rm --force sv_timestamp_logger_{{ target_architecture }}
+  register: stop_sv_timestamp_logger
+  changed_when: stop_sv_timestamp_logger.rc == 0
+  failed_when: >-
+    stop_sv_timestamp_logger.rc != 0 and
+    'No such container' not in
+    (stop_sv_timestamp_logger.stdout ~ stop_sv_timestamp_logger.stderr)
 - name: Lower generated files permission
   become: true
   file:

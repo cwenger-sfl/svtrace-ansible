@@ -7,29 +7,32 @@
 
 - name: Stop hardware sv_timestamp_logger container
   become: true
-  docker_container:
-    name: sv_timestamp_logger_hw_{{ target_architecture }}
-    state: absent
+  ansible.builtin.command:
+    cmd: docker rm --force sv_timestamp_logger_hw_{{ target_architecture }}
+  register: stop_hw_sv_timestamp_logger
+  changed_when: stop_hw_sv_timestamp_logger.rc == 0
+  failed_when: >-
+    stop_hw_sv_timestamp_logger.rc != 0 and
+    'No such container' not in
+    (stop_hw_sv_timestamp_logger.stdout ~ stop_hw_sv_timestamp_logger.stderr)
 
 - name: Run hardware-timestamping SV timestamp logger container
   become: true
-  docker_container:
-    name: sv_timestamp_logger_hw_{{ target_architecture }}
-    image: localhost/sv_timestamp_logger_{{ target_architecture }}
-    state: started
-    detach: true
-    privileged: true
-    cpuset_cpus: "{{ hw_ts_core if (hw_ts_core is defined and not hw_ts_core is none) else omit }}"
-    volumes:
-      - "{{ ansible_user_dir }}/latency_tests:/tmp/latency_tests"
-    devices:
-      - "/dev/ptp0:/dev/ptp0"
-    network_mode: host
-    capabilities:
-      - NET_ADMIN
-      - SYS_NICE
-    command: >
+  ansible.builtin.command:
+    cmd: >-
+      docker run --detach
+      --name sv_timestamp_logger_hw_{{ target_architecture }}
+      --privileged
+      {% if hw_ts_core is defined and not hw_ts_core is none %}
+      --cpuset-cpus {{ hw_ts_core }}
+      {% endif %}
+      --volume {{ ansible_user_dir }}/latency_tests:/tmp/latency_tests
+      --device /dev/ptp0:/dev/ptp0
+      --network host
+      --cap-add NET_ADMIN
+      --cap-add SYS_NICE
+      localhost/sv_timestamp_logger_{{ target_architecture }}
       -d {{ sv_interface }}
-      -f "/tmp/latency_tests/ts_hw_{{ inventory_hostname }}.txt"
+      -f /tmp/latency_tests/ts_hw_{{ inventory_hostname }}.txt
       -s {{ stream_to_log }}
       -t
