@@ -183,6 +183,39 @@ After configuration, the tests can be launched with the playbook
 cqfd -b run_tests
 ```
 
+### Running the listener and packet sender separately
+
+The listener containers and the packet sender can also be started separately
+with `cqfd`. Run these commands from the publisher checkout:
+
+```bash
+cd /home/admin/git/svtrace-ansible
+```
+
+Start the SV timestamp logger on the subscriber:
+
+```bash
+cqfd -b run_tests exec ansible subscriber_host -i inventories/qcom.yml -b -m shell -a 'docker run --detach --name sv_timestamp_logger_arm64 --privileged --cpuset-cpus 5 --volume /root/latency_tests:/tmp/latency_tests --device /dev/ptp1:/dev/ptp1 --network host --cap-add NET_ADMIN --cap-add SYS_NICE localhost/sv_timestamp_logger_arm64 -d enP1p5s0 -f /tmp/latency_tests/ts_subscriber_host.txt -s 0000 --clock_device /dev/ptp1'
+```
+
+Start the SV timestamp logger on the publisher:
+
+```bash
+cqfd -b run_tests exec ansible publisher_host -i inventories/qcom.yml -b -m shell -a 'docker run --detach --name sv_timestamp_logger_amd64 --privileged --cpuset-cpus 3 --volume /home/admin/latency_tests:/tmp/latency_tests --device /dev/ptp0:/dev/ptp0 --network host --cap-add NET_ADMIN --cap-add SYS_NICE localhost/sv_timestamp_logger_amd64 -d enp0s31f6 -f /tmp/latency_tests/ts_publisher_host.txt -s 0000 --clock_device /dev/ptp0'
+```
+
+Send the PCAP from the publisher:
+
+```bash
+cqfd -b run_tests exec ansible publisher_host -i inventories/qcom.yml -b -m command -a 'chrt --fifo 1 taskset -c 2 bittwist -i enp0s31f6 /home/admin/git/svtrace-ansible/test.pcap -l 10'
+```
+
+Stop both timestamp loggers after the transmission:
+
+```bash
+cqfd -b run_tests exec ansible all -i inventories/qcom.yml -b -m shell -a 'docker stop --time 10 sv_timestamp_logger_amd64 sv_timestamp_logger_arm64 || true'
+```
+
 Test duration can be set achieved using `pcap_cycles` inventory
 variable.
 
