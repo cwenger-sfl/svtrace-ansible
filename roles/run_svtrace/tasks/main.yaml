@@ -3,8 +3,26 @@
 ---
 - name : Run svtrace
   shell: |
+    rm -f /tmp/svtrace.pid /tmp/results
     . {{ svtrace_venv_path }}/bin/activate
-    taskset -c {{ svtrace_core }} svtrace.py --record --conf /etc/svtrace.cfg --machine {{ "hypervisor" if group_names[0] == "hypervisors" else group_names[0] }}
+    taskset -c {{ svtrace_core }} {{ svtrace_venv_path }}/bin/python3 -c '
+    import asyncio
+    import runpy
+
+    class CompatChildWatcher:
+        def attach_loop(self, loop):
+            pass
+
+    watcher = CompatChildWatcher()
+    asyncio.SafeChildWatcher = CompatChildWatcher
+    asyncio.set_child_watcher = lambda child_watcher: None
+    asyncio.get_child_watcher = lambda: watcher
+    asyncio.set_event_loop(asyncio.new_event_loop())
+    runpy.run_path("{{ svtrace_venv_path }}/bin/svtrace.py", run_name="__main__")
+    ' --record --conf /etc/svtrace.cfg --machine {{ "hypervisor" if "hypervisors" in group_names else "VM" }} --out /tmp/ &
+    svtrace_pid=$!
+    printf '%s\n' "$svtrace_pid" > /tmp/svtrace.pid
+    wait "$svtrace_pid"
   async: 9999999
   poll: 0
   register: svtrace_status

@@ -2,10 +2,36 @@
 # SPDX-License-Identifier: Apache-2.0
 ---
 - name: End svtrace
-  command:
-      killall --wait "svtrace.py" --signal SIGINT
+  ansible.builtin.shell:
+    cmd: |
+      if [ -s /tmp/svtrace.pid ]; then
+        pid="$(cat /tmp/svtrace.pid)"
+        case "$pid" in
+          ''|*[!0-9]*)
+            echo "Invalid svtrace PID file" >&2
+            exit 1
+            ;;
+        esac
+        if kill -0 "$pid" 2>/dev/null; then
+          kill -INT "$pid"
+          retries=0
+          while kill -0 "$pid" 2>/dev/null; do
+            if [ "$retries" -ge 30 ]; then
+              echo "svtrace did not stop after 30 seconds" >&2
+              exit 1
+            fi
+            sleep 1
+            retries=$((retries + 1))
+          done
+        fi
+        rm -f /tmp/svtrace.pid
+      fi
+      if [ ! -f /tmp/results ]; then
+        echo "svtrace result file /tmp/results was not created" >&2
+        exit 1
+      fi
 - name: Fetch svtrace result file
-  synchronize:
+  ansible.builtin.fetch:
     src: /tmp/results
-    dest: ../tests_results/latency/hyp_svtrace.record
-    mode: pull
+    dest: "{{ playbook_dir }}/../tests_results/latency/hyp_svtrace.record"
+    flat: true

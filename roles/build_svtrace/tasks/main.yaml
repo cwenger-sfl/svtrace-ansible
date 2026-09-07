@@ -1,11 +1,50 @@
 # Copyright (C) 2025 Savoir-faire Linux, Inc.
 # SPDX-License-Identifier: Apache-2.0
 ---
+- name: Prepare offline svtrace source archive
+  ansible.builtin.git:
+    repo: https://github.com/seapath/svtrace.git
+    dest: /tmp/svtrace-v0.1.2
+    version: v0.1.2
+    depth: 1
+  delegate_to: localhost
+  become: false
+  run_once: true
+  when: enable_svtrace is defined and enable_svtrace|bool == true
+- name: Create offline svtrace source archive
+  ansible.builtin.command:
+    cmd: git -C /tmp/svtrace-v0.1.2 archive --format=tar.gz --output=/tmp/svtrace-v0.1.2.tar.gz HEAD
+  delegate_to: localhost
+  become: false
+  run_once: true
+  changed_when: true
+  when: enable_svtrace is defined and enable_svtrace|bool == true
+- name: Transfer offline svtrace source archive
+  ansible.builtin.copy:
+    src: /tmp/svtrace-v0.1.2.tar.gz
+    dest: /tmp/svtrace-v0.1.2.tar.gz
+    mode: '0644'
+  when: enable_svtrace is defined and enable_svtrace|bool == true
+- name: Check setuptools in svtrace virtualenv
+  ansible.builtin.command:
+    cmd: "{{ svtrace_venv_path }}/bin/python3 -c 'import setuptools.build_meta'"
+  register: svtrace_setuptools_check
+  changed_when: false
+  failed_when: false
+  when: enable_svtrace is defined and enable_svtrace|bool == true
+- name: Recreate svtrace virtualenv with system packages
+  ansible.builtin.command:
+    cmd: "{{ ansible_python_interpreter }} -m venv --clear --system-site-packages {{ svtrace_venv_path }}"
+  when:
+    - enable_svtrace is defined and enable_svtrace|bool == true
+    - svtrace_setuptools_check.rc != 0
 - name: Install svtrace
   ansible.builtin.pip:
     virtualenv: "{{ svtrace_venv_path }}"
     virtualenv_command: "{{ ansible_python_interpreter }} -m venv "
-    name: git+https://github.com/seapath/svtrace.git@v0.1.2
+    virtualenv_site_packages: true
+    name: /tmp/svtrace-v0.1.2.tar.gz
+    extra_args: --no-deps --no-build-isolation
   when: enable_svtrace is defined and enable_svtrace|bool == true
 - name: Send svtrace configuration file
   template:
