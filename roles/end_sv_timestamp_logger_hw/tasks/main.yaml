@@ -7,12 +7,27 @@
 
 - name: Stop hardware sv_timestamp_logger container
   become: true
-  docker_container:
-    name: sv_timestamp_logger_hw_{{ target_architecture }}
-    state: absent
+  ansible.builtin.command:
+    cmd: docker stop --time 10 sv_timestamp_logger_hw_{{ target_architecture }}
+  register: stop_hw_sv_timestamp_logger
+  changed_when: stop_hw_sv_timestamp_logger.rc == 0
+  failed_when: >-
+    stop_hw_sv_timestamp_logger.rc != 0 and
+    'No such container' not in
+    (stop_hw_sv_timestamp_logger.stdout ~ stop_hw_sv_timestamp_logger.stderr)
+- name: Remove stopped hardware sv_timestamp_logger container
+  become: true
+  ansible.builtin.command:
+    cmd: docker rm sv_timestamp_logger_hw_{{ target_architecture }}
+  register: remove_hw_sv_timestamp_logger
+  changed_when: remove_hw_sv_timestamp_logger.rc == 0
+  failed_when: >-
+    remove_hw_sv_timestamp_logger.rc != 0 and
+    'No such container' not in
+    (remove_hw_sv_timestamp_logger.stdout ~ remove_hw_sv_timestamp_logger.stderr)
 
 - name: Fetch hardware SV timestamps
-  synchronize:
+  ansible.builtin.fetch:
     src: "{{ ansible_user_dir }}/latency_tests/ts_hw_{{ inventory_hostname }}.txt"
-    dest: ../tests_results/data/
-    mode: pull
+    dest: "{{ playbook_dir }}/../tests_results/data/ts_hw_{{ inventory_hostname }}.txt"
+    flat: true

@@ -53,6 +53,7 @@
         name: "run_sv_timestamp_logger_hw"
 
 - name: Start test
+  become: true
   hosts:
     publisher
   tasks:

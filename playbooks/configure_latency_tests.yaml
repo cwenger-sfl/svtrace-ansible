@@ -9,10 +9,10 @@
     - name: Build_sv_timestamp_analysis
       include_role:
         name: "build_sv_timestamp_analysis"
-    - name: Build sv_timestamp_logger for each subscriber
+    - name: Build sv_timestamp_logger for each target architecture
       include_role:
         name: "build_sv_timestamp_logger"
-      with_items: "{{ groups['subscriber'] }}"
+      with_items: "{{ (groups['publisher'] | default([])) + (groups['subscriber'] | default([])) }}"
       loop_control:
         loop_var: subscriber_name
 
@@ -22,6 +22,26 @@
     - subscriber
     - reference_logger
   tasks:
+    - name: Configure Docker without bridge networking
+      become: true
+      ansible.builtin.copy:
+        content: |
+          {"iptables": false, "ip6tables": false, "bridge": "none"}
+        dest: /etc/docker/daemon.json
+        owner: root
+        group: root
+        mode: "0644"
+      when: docker_disable_bridge | default(false) | bool
+      register: docker_configuration
+
+    - name: Start Docker daemon
+      become: true
+      ansible.builtin.systemd_service:
+        name: docker
+        enabled: true
+        state: "{{ 'restarted' if docker_configuration.changed else 'started' }}"
+      when: docker_disable_bridge | default(false) | bool
+
     - name: Deploy sv_timestamp_logger
       include_role:
         name: "deploy_sv_timestamp_logger"
