@@ -29,7 +29,7 @@ all:
 
               sv_interface: enp0s31f6
               pcap_file: /home/admin/git/svtrace-ansible/test.pcap
-              pcap_cycles: 10
+              pcap_cycles: 3600
               bittwist_core: 2
               enable_sv_ts: true
               sv_ts_core: 3
@@ -40,7 +40,7 @@ all:
             subscriber_host:
               ansible_host: 192.168.200.161
               ansible_user: root
-              ansible_ssh_private_key_file: ~/.ssh/id_rsa
+              ansible_ssh_private_key_file: ~/.ssh/seapath-sfl
               ansible_ssh_common_args: "-o StrictHostKeyChecking=no -o IdentitiesOnly=yes"
               target_platform: arm64
 
