@@ -3,6 +3,6 @@
 ---
 - name: Clone sv-timestamp-analysis
   git:
-    repo: https://github.com/seapath/sv-timestamp-analysis
+    repo: https://github.com/cwenger-sfl/sv-timestamp-analysis
     dest: ../sv-timestamp-analysis
     update: false
